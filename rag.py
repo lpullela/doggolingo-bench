@@ -16,7 +16,7 @@ embeddings = OpenAIEmbeddings()
 # split dictionary document into individual words
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000, chunk_overlap=200
-)  # FIX ME
+)  # FIX ME!!!! should be by line not chunk size
 documents = text_splitter.create_documents(
     ["make this from the documents folder"]
 )  # documents folder to text
