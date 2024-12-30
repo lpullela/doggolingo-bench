@@ -1,40 +1,35 @@
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAI
-from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 import os
 
-# Load the API key from a file
-with open("api_key.txt") as f:
-    OPENAI_KEY = f.read().strip()
-os.environ["OPENAI_API_KEY"] = OPENAI_KEY
 
-
-def query_gpt4_with_retriever(
-    model_type="regular", query="Explain quantum mechanics.", threshold=0.7, use_rag=True
-):
+def query_llama_with_retriever(model_type="llama", query="Explain quantum mechanics."):
     """
-    Query GPT-4 with a retriever, supporting both "mini" and "regular" model types.
+    Query the Llama-3.3-70b-instruct model with a retriever.
 
     Parameters:
-        model_type (str): Specify "mini" for GPT-4 Mini or "regular" for GPT-4.
+        model_type (str): Specify the model type (e.g., "llama").
         query (str): The query to process.
 
     Returns:
         str: The response from the model.
     """
 
-    # Choose the model based on model_type
-    if model_type == "mini":
-        model_name = "gpt-4o"  # Replace with actual mini model name
-    else:
-        model_name = "gpt-4"
+    # Load the Llama model and tokenizer
+    model_name = (
+        "Llama-3.3-70b-instruct"  # Replace with your actual Llama model name or path
+    )
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto")
 
-    # Initialize the chosen model
-    llm = ChatOpenAI(model=model_name, temperature=0)
+    # Create the Llama pipeline
+    llama_pipeline = pipeline(
+        "text-generation", model=model, tokenizer=tokenizer, device=0
+    )
 
     # Reload the FAISS vector store
-    embeddings = OpenAIEmbeddings()
+    embeddings = OpenAIEmbeddings()  # Adjust this if you're using custom embeddings
     vector_store = FAISS.load_local(
         "retriever_store", embeddings, allow_dangerous_deserialization=True
     )
@@ -46,6 +41,7 @@ def query_gpt4_with_retriever(
     retrieved_docs = retriever.invoke(query)
 
     # Filter documents by similarity score
+    threshold = 0.7
     filtered_docs = [
         doc
         for doc in retrieved_docs
@@ -53,21 +49,20 @@ def query_gpt4_with_retriever(
     ]
 
     # Create the prompt based on retrieved context or fallback
-    if use_rag and filtered_docs:
+    if filtered_docs:
         retrieved_text = "\n\n".join([doc.page_content for doc in filtered_docs])
         prompt = f"Using the following context:\n{retrieved_text}\n\nAnswer the question: {query}"
     else:
         prompt = query  # Use fallback prompt if no documents meet the threshold
 
-    # Pass the prompt to the LLM
-    response = llm.invoke(prompt)
-
-    return response
+    # Generate a response using the Llama model
+    response = llama_pipeline(prompt, max_length=512, num_return_sequences=1)
+    return response[0]["generated_text"]
 
 
 # Example usage
 if __name__ == "__main__":
-    response = query_gpt4_with_retriever(
-        model_type="mini", query="Explain the meaning of Doggolingo."
+    response = query_llama_with_retriever(
+        model_type="llama", query="Explain the meaning of Doggolingo."
     )
     print("Response:", response)
