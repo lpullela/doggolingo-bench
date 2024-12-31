@@ -2,16 +2,20 @@ from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAI
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
+import numpy as np
 import os
 
-# Load the API key from a file
+# load api key
 with open("api_key.txt") as f:
     OPENAI_KEY = f.read().strip()
 os.environ["OPENAI_API_KEY"] = OPENAI_KEY
 
 
 def query_gpt4_with_retriever(
-    model_type="regular", query="Explain quantum mechanics.", threshold=0.7, use_rag=True
+    model_type="regular",
+    query="Explain quantum mechanics.",
+    threshold=0.2,
+    use_rag=True,
 ):
     """
     Query GPT-4 with a retriever, supporting both "mini" and "regular" model types.
@@ -24,50 +28,47 @@ def query_gpt4_with_retriever(
         str: The response from the model.
     """
 
-    # Choose the model based on model_type
     if model_type == "mini":
-        model_name = "gpt-4o"  # Replace with actual mini model name
+        model_name = "gpt-4o"
     else:
         model_name = "gpt-4"
 
-    # Initialize the chosen model
     llm = ChatOpenAI(model=model_name, temperature=0)
 
-    # Reload the FAISS vector store
+    # reload faiss vector store
     embeddings = OpenAIEmbeddings()
     vector_store = FAISS.load_local(
         "retriever_store", embeddings, allow_dangerous_deserialization=True
     )
 
-    # Query the retriever
-    retriever = vector_store.as_retriever(
-        search_type="similarity", search_kwargs={"k": 2}
-    )
-    retrieved_docs = retriever.invoke(query)
+    docs_and_scores = vector_store.similarity_search_with_score(query, k=2)
 
-    # Filter documents by similarity score
+    retrieved_docs = [doc for doc, score in docs_and_scores]
+    similarity_scores = [score for doc, score in docs_and_scores]
+
+    # filter... irrelevent documents have score <= 0.2
     filtered_docs = [
         doc
-        for doc in retrieved_docs
-        if "similarity" in doc.metadata and doc.metadata["similarity"] >= threshold
+        for idx, doc in enumerate(retrieved_docs)
+        if similarity_scores[idx] >= threshold
     ]
 
-    # Create the prompt based on retrieved context or fallback
+    # create an augmented? prompt
     if use_rag and filtered_docs:
         retrieved_text = "\n\n".join([doc.page_content for doc in filtered_docs])
         prompt = f"Using the following context:\n{retrieved_text}\n\nAnswer the question: {query}"
     else:
-        prompt = query  # Use fallback prompt if no documents meet the threshold
+        prompt = (
+            query  # use fall back if a) we dont want context or b) we dont find matches
+        )
 
-    # Pass the prompt to the LLM
     response = llm.invoke(prompt)
 
     return response
 
 
-# Example usage
 if __name__ == "__main__":
     response = query_gpt4_with_retriever(
-        model_type="mini", query="Explain the meaning of Doggolingo."
+        model_type="mini", query="Interpret the word 'awoo'.", use_rag=False
     )
-    print("Response:", response)
+    print("Response:", response.content)

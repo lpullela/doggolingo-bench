@@ -1,6 +1,7 @@
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.schema import Document
 import os
 
 # this file gets the dictionary of doggolingo terms into a retriever
@@ -13,13 +14,26 @@ with open("api_key.txt") as f:
 os.environ["OPENAI_API_KEY"] = OPENAI_KEY
 embeddings = OpenAIEmbeddings()
 
+
+class LineTextSplitter:
+    def create_documents(self, file_path):
+        """
+        Parses the given text file line by line and creates a list of documents.
+        Each line in the file will be treated as a separate document.
+        """
+        documents = []
+        with open(file_path, "r", encoding="utf-8") as file:
+            for line in file:
+                line = line.strip()
+                if line:
+                    documents.append(Document(page_content=line))
+        return documents
+
+
 # split dictionary document into individual words
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000, chunk_overlap=200
-)  # FIX ME!!!! should be by line not chunk size
-documents = text_splitter.create_documents(
-    ["make this from the documents folder"]
-)  # documents folder to text
+text_file_path = "data/doggolingo_dict.csv"
+line_text_splitter = LineTextSplitter()
+documents = line_text_splitter.create_documents(text_file_path)
 
 # embed/store
 doc_embeddings = embeddings.embed_documents([doc.page_content for doc in documents])
