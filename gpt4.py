@@ -4,6 +4,7 @@ from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
 import numpy as np
 import os
+import pandas as pd
 
 # load api key
 with open("api_key.txt") as f:
@@ -55,8 +56,11 @@ def query_gpt4_with_retriever(
 
     # create an augmented? prompt
     if use_rag and filtered_docs:
-        retrieved_text = "\n\n".join([doc.page_content for doc in filtered_docs])
-        prompt = f"Using the following context:\n{retrieved_text}\n\nAnswer the question: {query}"
+        retrieved_text = filtered_docs[0].page_content
+        prompt = (
+            f"Using the true definition of the word:\n{retrieved_text}\n\nRate the proceeding content on the following scale: BAD, OKAY, GOOD, EXCELLENT. Content: "
+            + query
+        )
     else:
         prompt = (
             query  # use fall back if a) we dont want context or b) we dont find matches
@@ -68,7 +72,67 @@ def query_gpt4_with_retriever(
 
 
 if __name__ == "__main__":
-    response = query_gpt4_with_retriever(
-        model_type="mini", query="Interpret the word 'awoo'.", use_rag=False
-    )
-    print("Response:", response.content)
+    prompts = {
+        "Interpret": "Interpret the word: ",
+        "Create": "Create sentences containing the word: ",
+        "Translate": "Translate the following sentences to formal English: ",
+        "Generate": "Generate new words similar to the word: ",
+    }
+
+    df = pd.read_csv("data/doggolingo_dict.csv")
+    results_df = pd.DataFrame()
+
+    for word in df["word"]:
+        responses = {}
+        for i in prompts:
+            q = prompts[i] + word
+            if i == "Translate":
+                q += responses["Create"]
+            response = query_gpt4_with_retriever(
+                model_type="mini", query=q, use_rag=False
+            )
+            responses[i] = response.content
+
+        print("responses:", responses)
+
+        entry = {"word": word}
+        entry.update(responses)
+        results_df = pd.concat([results_df, pd.DataFrame([entry])], ignore_index=True)
+
+    # now we can test: using the augmented prompts, test whether the respnonses make sense
+    for word in df["word"]:
+        ratings = {}
+        for p in prompts.keys():
+            response_to_check = (
+                prompts[p]
+                + ":"
+                + word
+                + "\n"
+                + results_df.loc[results_df["word"] == word, p].iloc[0]
+            )
+            query = f"{response_to_check}"
+
+            response = query_gpt4_with_retriever(
+                model_type="mini", query=query, use_rag=True
+            )
+
+            if "excellent" in response.content.lower():
+                ratings[p] = "EXCELLENT"
+            elif "good" in response.content.lower():
+                ratings[p] = "GOOD"
+            elif "okay" in response.content.lower():
+                ratings[p] = "OKAY"
+            elif "bad" in response.content.lower():
+                ratings[p] = "BAD"
+            else:
+                ratings[p] = "unknown"
+
+        for prompt_type, rating in ratings.items():
+            column_name = f"{prompt_type}_rating"
+            if column_name not in results_df.columns:
+                results_df[column_name] = None
+            results_df.loc[results_df["word"] == word, column_name] = rating
+
+    results_df.to_csv("responses_output.csv", index=False)
+
+    print("Responses saved to responses_output.csv")
