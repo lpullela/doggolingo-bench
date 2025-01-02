@@ -88,8 +88,8 @@ if __name__ == "__main__":
             q = prompts[i] + word
             if i == "Translate":
                 q += responses["Create"]
-            response = query_gpt4_with_retriever(
-                model_type="mini", query=q, use_rag=False
+            response = query_gpt4_with_retriever(  # change the model type here (mini for 4-o and 'regular' for 4)
+                model_type="regular", query=q, use_rag=False
             )
             responses[i] = response.content
 
@@ -102,6 +102,7 @@ if __name__ == "__main__":
     # now we can test: using the augmented prompts, test whether the respnonses make sense
     for word in df["word"]:
         ratings = {}
+        ratings_full = {}
         for p in prompts.keys():
             response_to_check = (
                 prompts[p]
@@ -127,11 +128,21 @@ if __name__ == "__main__":
             else:
                 ratings[p] = "unknown"
 
+            ratings_full[p] = response.content
+
         for prompt_type, rating in ratings.items():
             column_name = f"{prompt_type}_rating"
+            full_rating_column = f"{prompt_type}_full_rating"
+
             if column_name not in results_df.columns:
                 results_df[column_name] = None
+            if full_rating_column not in results_df.columns:
+                results_df[full_rating_column] = None
+
             results_df.loc[results_df["word"] == word, column_name] = rating
+            results_df.loc[results_df["word"] == word, full_rating_column] = (
+                ratings_full[prompt_type]
+            )
 
     results_df.to_csv("responses_output.csv", index=False)
 
