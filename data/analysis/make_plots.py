@@ -35,7 +35,7 @@ for prompt in ['Interpret', 'Generate', 'Create', 'Translate']:
     plt.yticks([1, 2, 3, 4], ['BAD', 'OKAY', 'GOOD', 'EXCEL.'])
 
     # save these in the analysis folder
-    plt.savefig(f'analysis/plots/{prompt}_ratings.png')
+    plt.savefig(f'data/analysis/plots/{prompt}_ratings.png')
     plt.show()
 
 # use the results dict to make a bar graph comparing the prompts regardless of the model (group together the ratings if the prompt is the same)
@@ -47,6 +47,14 @@ interpret_std = 0
 generate_std = 0
 create_std = 0
 translate_std = 0
+
+# aggregate by model type
+llama_mean = 0
+llama_std = 0
+gpt4_mean = 0
+gpt4_std = 0
+mini_mean = 0
+mini_std = 0
 
 for key, value in results.items(): 
     if key[0] == 'Interpret': 
@@ -61,6 +69,17 @@ for key, value in results.items():
     elif key[0] == 'Translate':
         translate_mean += value[0]
         translate_std += value[1]
+
+for key, value in results.items(): 
+    if key[1] == 'llama': 
+        llama_mean += value[0]
+        llama_std += value[1]
+    elif key[1] == 'regular':
+        gpt4_mean += value[0]
+        gpt4_std += value[1]
+    elif key[1] == 'mini':
+        mini_mean += value[0]
+        mini_std += value[1]
     
 interpret_mean /= 3
 generate_mean /= 3
@@ -70,6 +89,13 @@ interpret_std /= 3
 generate_std /= 3
 create_std /= 3
 translate_std /= 3
+llama_mean /= 4
+llama_std /= 4
+gpt4_mean /= 4
+gpt4_std /= 4
+mini_mean /= 4
+mini_std /= 4
+
 
 # make a bar graph
 prompt_means = [interpret_mean, generate_mean, create_mean, translate_mean]
@@ -80,7 +106,19 @@ plt.bar(prompts, prompt_means, yerr=prompt_stds, capsize=5)
 plt.title('Prompt ratings')
 plt.ylabel('Rating')
 plt.yticks([1, 2, 3, 4], ['BAD', 'OKAY', 'GOOD', 'EXCEL.'])
-plt.savefig('analysis/plots/prompt_ratings.png')
+plt.savefig('data/analysis/plots/prompt_ratings.png')
+plt.show()
+
+# make a bar graph comparing the models
+model_means = [llama_mean, gpt4_mean, mini_mean]
+model_stds = [llama_std, gpt4_std, mini_std]
+models = ['llama', 'gpt4', 'mini']
+plt.figure(figsize=(10, 6))
+plt.bar(models, model_means, yerr=model_stds, capsize=5)
+plt.title('Model ratings')
+plt.ylabel('Rating')
+plt.yticks([1, 2, 3, 4], ['BAD', 'OKAY', 'GOOD', 'EXCEL.'])
+plt.savefig('data/analysis/plots/model_ratings.png')
 plt.show()
 
 print(results)
