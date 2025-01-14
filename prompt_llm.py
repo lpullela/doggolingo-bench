@@ -105,10 +105,10 @@ if __name__ == "__main__":
 
     # Prompts
     prompts = {
-        "Interpret": "Interpret the word: ",
-        "Create": "Create sentences containing the word: ",
-        "Translate": "Translate the following sentences to professional English: ",
-        "Generate": "Generate new words similar to the word: ",
+        "Interpret": "Interpret the doggolingo word: ",
+        "Create": "Create sentences containing the doggolingo word: ",
+        "Translate": "Translate the following doggolingo sentences to professional English: ",
+        "Generate": "Generate new words similar to the doggolingo word: ",
     }
 
     # Iterate over words and query models
