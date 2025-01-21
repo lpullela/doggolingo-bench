@@ -1,8 +1,11 @@
 import os
 import pandas as pd
 import argparse
+import json
 from vllm import LLM, SamplingParams
 from langchain_openai import ChatOpenAI
+
+MAX_TOKEN_LENGTH = 512
 
 # Load API key
 with open("api_key.txt") as f:
@@ -10,11 +13,11 @@ with open("api_key.txt") as f:
 os.environ["OPENAI_API_KEY"] = OPENAI_KEY
 
 os.environ['HF_HOME'] = '/data/kenantang/llama'
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3,4"
 
 # Initialize Llama model
-llm = LLM(model="meta-llama/Llama-3.3-70B-Instruct", tensor_parallel_size=2, max_model_len=4096)
-sampling_params = SamplingParams(temperature=0.5, max_tokens=1024, seed=0)
+llm = LLM(model="meta-llama/Llama-3.3-70B-Instruct", tensor_parallel_size=2, max_model_len=MAX_TOKEN_LENGTH)
+sampling_params = SamplingParams(temperature=0.5, max_tokens=MAX_TOKEN_LENGTH, seed=0)
 
 def query_gpt4_with_lookup(model_type, query, use_rag=False, definition=""):
     if model_type == "mini":
@@ -22,7 +25,7 @@ def query_gpt4_with_lookup(model_type, query, use_rag=False, definition=""):
     else:
         model_name = "gpt-4"
 
-    llm = ChatOpenAI(model=model_name, temperature=0, max_completion_tokens=1024)
+    llm = ChatOpenAI(model=model_name, temperature=0, max_completion_tokens=MAX_TOKEN_LENGTH)
 
     if use_rag and definition:
         query = f"Using the true definition of the word:\n{definition}\n\n{query}"
@@ -54,38 +57,41 @@ def evaluate_responses_with_gpt4o(word, results_df, prompts, definition):
     Returns:
         dict: Updated DataFrame columns with ratings and evaluation comments.
     """
+    # read the json file eval_criteria.json 
+    with open('eval_criteria.json', 'r') as f:
+        eval_criteria = json.load(f)
+
     evaluator_model = ChatOpenAI(model="gpt-4o", temperature=0)
     ratings = {}
     ratings_full = {}
 
     for prompt_type in prompts.keys():
-        # Prepare the evaluation query
-        query = (
-                prompts[prompt_type]
-                + ":"
-                + word
-                + "\n"
-                + results_df.loc[results_df["word"] == word, prompt_type].iloc[0]
+        if prompt_type == "Translate": 
+            evaluation_query = (
+                f"You are an AI agent whose task is to grade a response to a task. "
+                f"The task is to: {prompts[prompt_type]} {word}. "
+                f"You will rate the response on the following scale: BAD, OKAY, GOOD, EXCELLENT "
+                f"based on these criteria: {eval_criteria[prompt_type]['criteria']} "
+                f"The true definition of the word is: {definition}. "
+                f"The sentences to translate are: {results_df.loc[results_df['word'] == word, 'Create'].iloc[0]} "
+                f"The translated responses are: {results_df.loc[results_df['word'] == word, prompt_type].iloc[0]} "
             )
-
-        prompt = (
-            f"Using the true definition of the word:\n{definition}\n\nRate the proceeding content on the following scale: BAD, OKAY, GOOD, EXCELLENT. Content: "
-            + query
-        )
-    
-        evaluation_query = f"Rate the following content on a scale of BAD, OKAY, GOOD, EXCELLENT:\n\n{prompt}"
+        else:
+            evaluation_query = (
+                f"You are an AI agent whose task is to grade a response to a task. "
+                f"The task is to: {prompts[prompt_type]} {word}. You will rate the response on the following scale: "
+                f"BAD, OKAY, GOOD, EXCELLENT based on these criteria: {eval_criteria[prompt_type]['criteria']} "
+                f"The true definition of the word is: {definition}. The response is: {results_df.loc[results_df['word'] == word, prompt_type].iloc[0]}."
+            )
 
         # Evaluate using GPT-4
         evaluation_response = evaluator_model.invoke(evaluation_query)
 
-        if "excellent" in evaluation_response.content.lower():
-            ratings[prompt_type] = "EXCELLENT"
-        elif "good" in evaluation_response.content.lower():
-            ratings[prompt_type] = "GOOD"
-        elif "okay" in evaluation_response.content.lower():
-            ratings[prompt_type] = "OKAY"
-        elif "bad" in evaluation_response.content.lower():
-            ratings[prompt_type] = "BAD"
+        rating_words = ["excellent", "good", "okay", "bad"]
+        matched_ratings = [word.upper() for word in rating_words if word in evaluation_response.content.lower()]
+
+        if len(matched_ratings) == 1:
+            ratings[prompt_type] = matched_ratings[0].upper() # upper case
         else:
             ratings[prompt_type] = "unknown"
 
@@ -158,7 +164,7 @@ if __name__ == "__main__":
         #break   
 
     # Save the responses to a CSV file
-    output_file = f"responses_output_updated_prompt_{args.model}.csv"
+    output_file = f"responses_output_prompt_with_eval_criteria_{args.model}.csv"
     results_df.to_csv(output_file, index=False)
     print(f"Responses saved to {output_file}")
 

@@ -1,0 +1,19 @@
+{
+    "Interpret": {
+      "prompt": "Rate the proceeding content on the following scale: BAD, OKAY, GOOD, EXCELLENT based on these criteria:",
+      "criteria": "BAD: This content does not understand the word at all, or mistakes the word for a typo. OKAY: This content understands the conventional definition of the word, but does not find the relationship to doggolingo/pet content. GOOD: This content notes the relationship to doggolingo/pet content but does not get the doggolingo definition entirely correct. EXCELLENT: This content correctly provides the doggolingo definition of the word."
+    },
+    "Create": {
+      "prompt": "Rate the proceeding content on the following scale: BAD, OKAY, GOOD, EXCELLENT based on these criteria:",
+      "criteria": "BAD: This content does not use this word correctly and/or mistakes the word for a typo. OKAY: This content understands the conventional definition of the word, but does not find the relationship to doggolingo/pet content. GOOD: This content notes the relationship to doggolingo/pet content but does not get the doggolingo definition entirely correct. EXCELLENT: This content uses the doggolingo definition of the word correctly."
+    },
+    "Translate": {
+      "prompt": "Rate the proceeding content on the following scale: BAD, OKAY, GOOD, EXCELLENT based on these criteria:",
+      "criteria": "BAD: This content mistakes the doggolingo word for a typo or provides an incorrect translation. OKAY: This content translates the content correctly but uses the conventional definition of the given word instead of the doggolingo definition. GOOD: This content understands the doggolingo definition of the word but the sentence is not translated correctly. EXCELLENT: This content uses the correct definition of the word and is translated correctly."
+    },
+    "Generate": {
+      "prompt": "Rate the proceeding content on the following scale: BAD, OKAY, GOOD, EXCELLENT based on these criteria:",
+      "criteria": "BAD: The generated words only phonetically connect to the original word. They are not analogous to the given word in meaning. OKAY: Some generated words are analogous to the given word in meaning, while others are mainly phonetically similar. GOOD: Most words are analogous to the given word in meaning, while some are phonetically similar. EXCELLENT: All generated words are creative and analogous to the given word in meaning."
+    }
+  }
+  
