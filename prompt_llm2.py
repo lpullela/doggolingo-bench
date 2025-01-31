@@ -13,7 +13,7 @@ with open("api_key.txt") as f:
 os.environ["OPENAI_API_KEY"] = OPENAI_KEY
 
 os.environ['HF_HOME'] = '/data/kenantang/llama'
-os.environ["CUDA_VISIBLE_DEVICES"] = "3,4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5,6"
 
 # Initialize Llama model
 llm = LLM(model="meta-llama/Llama-3.3-70B-Instruct", tensor_parallel_size=2, max_model_len=MAX_TOKEN_LENGTH)
@@ -21,9 +21,9 @@ sampling_params = SamplingParams(temperature=0.5, max_tokens=MAX_TOKEN_LENGTH, s
 
 def query_gpt4_with_lookup(model_type, query, use_rag=False, definition=""):
     if model_type == "mini":
-        model_name = "gpt-4o"
+        model_name = "gpt-4o-mini"
     else:
-        model_name = "gpt-4"
+        model_name = "gpt-4o"
 
     llm = ChatOpenAI(model=model_name, temperature=0, max_completion_tokens=MAX_TOKEN_LENGTH)
 
@@ -61,7 +61,7 @@ def evaluate_responses_with_gpt4o(word, results_df, prompts, definition):
     with open('eval_criteria.json', 'r') as f:
         eval_criteria = json.load(f)
 
-    evaluator_model = ChatOpenAI(model="gpt-4o", temperature=0)
+    evaluator_model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
     ratings = {}
     ratings_full = {}
 
@@ -110,11 +110,53 @@ if __name__ == "__main__":
     results_df = pd.DataFrame()
 
     # Prompts
+    # original prompts
+    # prompts = {
+    #     "Interpret": "Interpret the doggolingo word: [word]",
+    #     "Create": "You are a helpful agent that speaks doggolingo. Create sentences containing the doggolingo word: [word]",
+    #     "Translate": "Translate the following doggolingo sentences to professional English: [word]",
+    #     "Generate": "Generate new words similar to the doggolingo word: [word]",
+    # }
+
+    # agent specification
+    # prompts = {
+    #     # "Interpret": "Interpret the doggolingo word: [word]",
+    #     "Create": "You are a helpful agent that speaks doggolingo. Create sentences containing the doggolingo word: [word]",
+    #     "Translate": "Translate the following doggolingo sentences to professional English: [word]",
+    #     # "Generate": "Generate new words similar to the doggolingo word: [word]",
+    # }
+
+    # few shot learning
+    interpret_example = (
+        "Prompt: “Interpret the doggolingo word [word]. Here is an example of the correct interpretation for the "
+        "doggolingo word “furbaby”: “A term used to refer to one’s pets, typically seen on social media”."
+    )
+    create_example = (
+        "Prompt: “Create sentences containing the doggolingo word: [word]. Here are some examples: \n"
+        "Word: “henlo”; sentence: “Henlo fren. Am doggo!”\n"
+        "Word: “bamboozle”; sentence: “you did me a bamboozle””"
+    )
+
+    generate_example = (
+        "Prompt: Generate new words similar to the doggolingo word [word]. Here are some examples: \n"
+        "Word: 'furbaby': 'fluffball', 'furball', 'woolybaby', 'shaggy-baby'\n"
+        "Word: 'woofer': 'purrer', 'chirper', 'meower'"
+    )
+
+    # prompts = {
+    #     "Interpret": interpret_example,
+    #     "Create": create_example,
+    #     "Translate": "Translate the following doggolingo sentences to professional English: [word]",
+    #     "Generate": generate_example,
+    # }
+
+    # few shot + agent specification
+
     prompts = {
-        "Interpret": "Interpret the doggolingo word: ",
-        "Create": "Create sentences containing the doggolingo word: ",
-        "Translate": "Translate the following doggolingo sentences to professional English: ",
-        "Generate": "Generate new words similar to the doggolingo word: ",
+        #"Interpret": interpret_example,
+        "Create": "You are a helpful agent that speaks doggolingo." + create_example,
+        # "Translate": "Translate the following doggolingo sentences to professional English: [word]",
+        # "Generate": generate_example,
     }
 
     # Iterate over words and query models
@@ -127,7 +169,8 @@ if __name__ == "__main__":
             if prompt_type == "Translate":
                 query = prompt_text + responses.get("Create", "")
             else:
-                query = prompt_text + word
+                #query = prompt_text + word
+                query = prompt_text.replace("[word]", word)
 
             if args.model in ["regular", "mini"]:
                 response = query_gpt4_with_lookup(
@@ -143,7 +186,7 @@ if __name__ == "__main__":
         entry = {"word": word, "definition": definition, "model_name": args.model}
         entry.update(responses)
         results_df = pd.concat([results_df, pd.DataFrame([entry])], ignore_index=True)
-        # break
+        #break
 
     # Evaluate responses with GPT-4
     for _, row in df.iterrows():
@@ -161,10 +204,11 @@ if __name__ == "__main__":
 
             results_df.loc[results_df["word"] == word, column_name] = rating
             results_df.loc[results_df["word"] == word, full_rating_column] = ratings_full[prompt_type]
-        #break   
+        #break 
 
     # Save the responses to a CSV file
-    output_file = f"responses_output_prompt_with_eval_criteria_{args.model}.csv"
+    #output_file = f"responses_agent_specification_create_translate_{args.model}.csv"
+    output_file = f"responses_few_shot_plus_agent_spec_{args.model}.csv"
     results_df.to_csv(output_file, index=False)
     print(f"Responses saved to {output_file}")
 

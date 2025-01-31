@@ -2,7 +2,9 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-df = pd.read_csv('merged_responses_output.csv')
+df = pd.read_csv('/home/lpullela/doggolingo/doggolingo-bench/responses/few_shot_agent_spec/few_shot_agent_spec_merged_responses_output.csv')
+
+output_folder = 'data/analysis/prompt_modifications/' + 'few_shot_plus_agent_spec/'
 
 # Assuming 'df' is your DataFrame
 rating_map = {'EXCELLENT': 4, 'GOOD': 3, 'OKAY': 2, 'BAD': 1}
@@ -35,7 +37,7 @@ for prompt in ['Interpret', 'Generate', 'Create', 'Translate']:
     plt.yticks([1, 2, 3, 4], ['BAD', 'OKAY', 'GOOD', 'EXCEL.'])
 
     # save these in the analysis folder
-    plt.savefig(f'data/analysis/plots/{prompt}_ratings.png')
+    plt.savefig(f'{output_folder}{prompt}_ratings.png')
     plt.show()
 
 # use the results dict to make a bar graph comparing the prompts regardless of the model (group together the ratings if the prompt is the same)
@@ -106,7 +108,7 @@ plt.bar(prompts, prompt_means, yerr=prompt_stds, capsize=5)
 plt.title('Prompt ratings')
 plt.ylabel('Rating')
 plt.yticks([1, 2, 3, 4], ['BAD', 'OKAY', 'GOOD', 'EXCEL.'])
-plt.savefig('data/analysis/plots/prompt_ratings.png')
+plt.savefig(output_folder + 'prompt_ratings.png')
 plt.show()
 
 # make a bar graph comparing the models
@@ -118,7 +120,7 @@ plt.bar(models, model_means, yerr=model_stds, capsize=5)
 plt.title('Model ratings')
 plt.ylabel('Rating')
 plt.yticks([1, 2, 3, 4], ['BAD', 'OKAY', 'GOOD', 'EXCEL.'])
-plt.savefig('data/analysis/plots/model_ratings.png')
+plt.savefig(output_folder + 'model_ratings.png')
 plt.show()
 
 print(results)
