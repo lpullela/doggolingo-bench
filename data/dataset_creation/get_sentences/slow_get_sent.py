@@ -1,8 +1,16 @@
-import csv
+import re
 import numpy as np
 import pandas as pd
 
-print('here')
+def create_list(text):
+    text = text.lower()
+    pattern = r"[ \t\n\r\f\v,./\-|+!?*&|#'$()^%[\]@+=~`{}:;<>\"“”‘’]"
+
+    result = re.split(pattern, text)
+    result = [word for word in result if word]
+
+    return result
+
 doggo_dict = pd.read_csv('/home/smirrashidi/doggolingo-bench/data/final_doggolingo_dict.csv')
 words = doggo_dict['word'].tolist()
 
@@ -14,7 +22,8 @@ res = []
 for word in words: 
     print(f'Now searching for: {word}')
     for sentence in sentences:
-        if word in sentence:
+        sent_list = create_list(sentence)
+        if word in sent_list:
             res.append({
                 'word' : word,
                 'sentence' : sentence
