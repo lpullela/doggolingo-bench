@@ -4,10 +4,9 @@ import pandas as pd
 
 def create_list(text):
     text = text.lower()
-    pattern = r"[ \t\n\r\f\v,./\-|+!?*&|#'$()^%[\]@+=~`{}:;<>\"“”‘’]"
+    pattern = r"[A-Za-z]+"
 
-    result = re.split(pattern, text)
-    result = [word for word in result if word]
+    result = re.findall(pattern, text)
 
     return result
 

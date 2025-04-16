@@ -33,7 +33,7 @@ equivalent: 'thick' \n \
 the words 'pet' and 'vacation,' suggesting a trip where pets are not only allowed but are a central part of the experience', equivalent: 'vacation' \n \
     4) word: 'cronch', definition: 'In doggolingo, the word 'cronch' is often used to describe the sound or action of a dog chewing on something, typically something \
 crunchy like a bone or a treat. It's an onomatopoeic term that captures the satisfying noise and experience of a dog enjoying a good chew.', equivalent: 'crunch' \n \
-In your defintions, aim to capture the meaning of the word, how it is formed (onomatopoeia, pun, etc), and the context it may be used in. \n \
+In your definitions, aim to capture the meaning of the word, how it is formed (onomatopoeia, pun, etc), and the context it may be used in. \n \
 Please give your response for the given worse following this json formatting: \n \
 [{\"word\": \"thicc\", \"definition\": \" Based on the word thick, thicc is used affectionately to describe doggos who are chunky, pudgy, or slightly overweight.\" \
 \"equivalent\": \"thick\"},\n \
